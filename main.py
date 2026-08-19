@@ -14,7 +14,9 @@ import time
 import datetime
 import json
 import asyncio
+import sys
 
+from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -931,12 +933,11 @@ async def _async_execute_mcp_call(
     tool_name: str,
     arguments: dict,
 ) -> dict:
-
+    server_path = Path(__file__).parent / "studio_mcp_server.py"
     server_params = StdioServerParameters(
-        command="python",
-        args=["studio_mcp_server.py"],
-        env=None,
-    )
+    command=sys.executable,
+    args=[str(server_path)],
+)
 
     json_rpc_request = {
         "jsonrpc": "2.0",
