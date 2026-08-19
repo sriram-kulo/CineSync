@@ -34,7 +34,7 @@ load_dotenv()
 # =========================================================
 
 st.set_page_config(
-    page_title="CineSync Dyno",
+    page_title="CineSync ",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -633,7 +633,7 @@ with st.sidebar:
         """
         <div class="sidebar-brand-box">
             <div class="sidebar-brand-title">
-                🎬 CineSync Dyno
+                🎬 CineSync
             </div>
             <div class="sidebar-brand-subtitle">
                 Studio Operations Control
@@ -714,7 +714,7 @@ with st.sidebar:
     )
 
     st.caption(
-        "CineSync Dyno • Enterprise Production Intelligence"
+        "CineSync • Enterprise Production Intelligence"
     )
 
 
@@ -729,7 +729,7 @@ st.markdown(
     </div>
 
     <div class="hero-title">
-        CineSync Dyno
+        CineSync
     </div>
 
     <div class="hero-description">
