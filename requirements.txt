@@ -1,4 +1,5 @@
 streamlit
 google-genai
 python-dotenv
-mcp==1.22.1
+mcp
+fastmcp
