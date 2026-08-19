@@ -1,8 +1,4 @@
 streamlit
 google-genai
 python-dotenv
-<<<<<<< HEAD
-
-=======
->>>>>>> 683b9129c4b0bf96267c0d9055bbe73cb7aadd96
 mcp
