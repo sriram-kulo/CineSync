@@ -1,4 +1,4 @@
-# 🎬 CineSync Enterprise: Heavenly Peerless OS
+# 🎬 CineSync Enterprise:
 
 CineSync Enterprise is an autonomous multi-agent studio operating system built for the Summer Blockbuster Hackathon. It features Model Context Protocol (MCP) tool execution, multimodal script/PDF ingestion, self-correcting feedback loops, and enterprise telemetry.
 
