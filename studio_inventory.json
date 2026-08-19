@@ -1,0 +1,52 @@
+{
+    "flashlight": {
+        "status": "Available in Prop Locker B",
+        "cost_per_day": 15,
+        "requires_permit": false
+    },
+    "gun": {
+        "status": "RESTRICTED: Armorer Clearance Pending",
+        "cost_per_day": 150,
+        "requires_permit": true
+    },
+    "camera": {
+        "status": "RED V-Raptor 8K Ready in Studio Vault",
+        "cost_per_day": 1200,
+        "requires_permit": false
+    },
+    "vehicle": {
+        "status": "UNAVAILABLE: Unit 4 in Maintenance",
+        "cost_per_day": 2500,
+        "requires_permit": true
+    },
+    "crimson flare": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "heavy metallic lockbox": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "blood-stained map": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "radio": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "service weapon": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "armored transport unit": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    }
+}

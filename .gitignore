@@ -1,0 +1,8 @@
+.env
+__pycache__
+.streamlit/
+.venv/
+data-alloy/
+.agents/
+Untitled-3.txt
+Untitled-4.ps1
