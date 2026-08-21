@@ -15,8 +15,8 @@ import datetime
 import json
 import asyncio
 import sys
-
 from pathlib import Path
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -345,17 +345,18 @@ st.markdown(
     }
 
     .card-description {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        color: #64748b;
-        font-size: 0.78rem;
-        line-height: 1.55;
-        margin-top: 5px;
-        margin-bottom: 15px;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    margin: 7px 0 0 0;
+    padding: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
 
     /* Tab content card styling — wraps Streamlit widgets inside tabs */
     [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
@@ -815,7 +816,7 @@ with telemetry_right:
 
     if st.button(
         telemetry_button_text,
-        use_container_width=True,
+        width="stretch",
     ):
         st.session_state["show_telemetry"] = (
             not st.session_state["show_telemetry"]
@@ -932,11 +933,16 @@ async def _async_execute_mcp_call(
     tool_name: str,
     arguments: dict,
 ) -> dict:
-    server_path = Path(__file__).parent / "studio_mcp_server.py"
+
+    server_path = os.path.abspath("studio_mcp_server.py")
+    server_dir = os.path.dirname(server_path)
+
     server_params = StdioServerParameters(
-    command=sys.executable,
-    args=[str(server_path)],
-)
+        command=sys.executable,
+        args=[server_path],
+        cwd=server_dir,
+        env=os.environ.copy(),
+    )
 
     json_rpc_request = {
         "jsonrpc": "2.0",
@@ -949,51 +955,56 @@ async def _async_execute_mcp_call(
     }
 
     try:
-
         async with stdio_client(server_params) as (read, write):
-
             async with ClientSession(read, write) as session:
-
                 await session.initialize()
 
-                tool_result = await session.call_tool(
-                    tool_name,
-                    arguments=arguments,
-                )
+                try:
+                    tool_result = await session.call_tool(
+                        tool_name,
+                        arguments=arguments,
+                    )
+                except Exception as tool_error:
+                    return {
+                        "request_payload": json_rpc_request,
+                        "response_payload": {
+                            "error": f"Tool execution failed: {repr(tool_error)}"
+                        },
+                        "execution_status": "FAILED",
+                    }
 
                 parsed_output = {}
 
                 if tool_result.content:
-
                     for content_item in tool_result.content:
-
                         if hasattr(content_item, "text"):
-
                             try:
-                                parsed_output = json.loads(content_item.text)
+                                parsed_output = json.loads(
+                                    content_item.text
+                                )
                             except Exception:
-                                parsed_output = {"raw_text": content_item.text}
-
-                json_rpc_response = {
-                    "jsonrpc": "2.0",
-                    "result": parsed_output,
-                    "id": json_rpc_request["id"],
-                }
+                                parsed_output = {
+                                    "raw_text": content_item.text
+                                }
 
                 return {
                     "request_payload": json_rpc_request,
-                    "response_payload": json_rpc_response,
+                    "response_payload": {
+                        "jsonrpc": "2.0",
+                        "result": parsed_output,
+                        "id": json_rpc_request["id"],
+                    },
                     "execution_status": "SUCCESS",
                 }
 
     except Exception as error:
-
         return {
             "request_payload": json_rpc_request,
-            "response_payload": {"error": str(error)},
+            "response_payload": {
+                "error": repr(error)
+            },
             "execution_status": "FAILED",
         }
-
 
 def execute_true_mcp_client(tool_name: str, arguments: dict) -> dict:
     return asyncio.run(_async_execute_mcp_call(tool_name, arguments))
@@ -1131,12 +1142,11 @@ with execute_col1:
     pipeline_execution_trigger = st.button(
         "🚀 Execute Autonomous Production Pipeline",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     )
 
 with execute_col2:
     st.caption("Gemini → MCP → Finance → Audit")
-
 
 # =========================================================
 # 17. MULTI-AGENT PIPELINE
@@ -1145,7 +1155,6 @@ with execute_col2:
 if pipeline_execution_trigger:
 
     if not raw_script_payload.strip() and not uploaded_media_reference:
-
         st.warning(
             "Please provide script text or upload "
             "an asset before launching the pipeline."
@@ -1158,7 +1167,9 @@ if pipeline_execution_trigger:
         def log_audit(actor: str, action: str, details: str):
             audit_trail.append(
                 {
-                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                     "actor": actor,
                     "action": action,
                     "details": details,
@@ -1173,13 +1184,14 @@ if pipeline_execution_trigger:
             try:
 
                 # =================================================
-                # STAGE 1
+                # STAGE 1 — DIRECTOR ANALYSIS
                 # =================================================
 
                 log_audit(
                     "System",
                     "Pipeline Initialized",
-                    f"Model: {selected_gemini_model}, Transport: Stdio Subprocess",
+                    f"Model: {selected_gemini_model}, "
+                    "Transport: Stdio Subprocess",
                 )
 
                 st.write(
@@ -1220,9 +1232,8 @@ if pipeline_execution_trigger:
 
                 time.sleep(0.3)
 
-
                 # =================================================
-                # STAGE 2
+                # STAGE 2 — ART DEPARTMENT + TRUE MCP
                 # =================================================
 
                 st.write(
@@ -1231,22 +1242,48 @@ if pipeline_execution_trigger:
                 )
 
                 department_prompt = f"""
-You are a professional Hollywood Prop Master.
+You are a professional Hollywood Prop Master and
+Production Equipment Coordinator.
 
 Analyze this production script:
 
 {raw_script_payload}
 
-Identify required:
+Identify all relevant production assets, including:
 
 - Props
 - Weapons
 - Vehicles
+- Wardrobe or specialized gear
 - Camera equipment
+- Lighting equipment
+- Grip equipment
 - Specialized production equipment
+- Safety-related production items
 
 For each relevant asset, use the
 query_studio_asset_database tool to verify availability.
+
+Use concise, specific item queries such as:
+- service weapon
+- tactical flashlight
+- rain gear
+- low-light cinema camera
+- fog machine
+
+After the verified MCP results are returned, produce a final
+Art Department & Asset Requirements report.
+
+For every important asset include:
+- Asset
+- Department
+- Availability
+- Cost per day
+- Permit requirement
+- Production note
+
+Do not return "None" when relevant assets can be identified.
+Do not invent availability, costs, or permit information.
 """
 
                 department_response = client.models.generate_content(
@@ -1267,11 +1304,11 @@ query_studio_asset_database tool to verify availability.
                 collected_mcp_traces = []
                 extracted_items_for_calc = []
                 recovery_actions = []
+                mcp_asset_results = []
 
-
-                # =================================================
-                # MCP TOOL CALLS
-                # =================================================
+                # ---------------------------------------------
+                # EXECUTE EVERY GEMINI FUNCTION CALL THROUGH MCP
+                # ---------------------------------------------
 
                 if department_response.function_calls:
 
@@ -1282,7 +1319,9 @@ query_studio_asset_database tool to verify availability.
                             function_call.args,
                         )
 
-                        collected_mcp_traces.append(mcp_result_wrapper)
+                        collected_mcp_traces.append(
+                            mcp_result_wrapper
+                        )
 
                         log_audit(
                             "MCP Stdio Client",
@@ -1296,47 +1335,139 @@ query_studio_asset_database tool to verify availability.
                             .get("result", {})
                         )
 
-                        result_data = inner_result.get("result", {})
-
-                        status_str = str(
-                            result_data.get("status", "")
-                        ).upper()
-
-                        cost_val = result_data.get("cost_per_day", 100)
-
-                        if "UNAVAILABLE" in status_str or "RESTRICTED" in status_str:
-                            recovery_actions.append(
-                                (
-                                    "Resource Conflict Detected "
-                                    f"for '{result_data.get('item')}': "
-                                    f"{status_str}. "
-                                    "Autonomous re-planning engaged."
-                                )
-                            )
-
-                        extracted_items_for_calc.append(
-                            {
-                                "item": result_data.get("item"),
-                                "cost_per_day": cost_val,
-                            }
+                        result_data = inner_result.get(
+                            "result",
+                            {},
                         )
 
+                        if result_data:
+                            mcp_asset_results.append(
+                                result_data
+                            )
 
-                # =================================================
-                # FALLBACK
-                # =================================================
+                            status_str = str(
+                                result_data.get(
+                                    "status",
+                                    "",
+                                )
+                            ).upper()
+
+                            cost_val = result_data.get(
+                                "cost_per_day",
+                                100,
+                            )
+
+                            extracted_items_for_calc.append(
+                                {
+                                    "item": result_data.get("item"),
+                                    "cost_per_day": cost_val,
+                                }
+                            )
+
+                            if (
+                                "UNAVAILABLE" in status_str
+                                or "RESTRICTED" in status_str
+                            ):
+                                recovery_actions.append(
+                                    (
+                                        "Resource Conflict Detected "
+                                        f"for '{result_data.get('item')}': "
+                                        f"{status_str}. "
+                                        "Autonomous re-planning engaged."
+                                    )
+                                )
+
+                # ---------------------------------------------
+                # FINAL ART DEPARTMENT SYNTHESIS
+                # ---------------------------------------------
+
+                if mcp_asset_results:
+
+                    verified_asset_context = json.dumps(
+                        mcp_asset_results,
+                        indent=2,
+                    )
+
+                    final_department_prompt = f"""
+You are a professional Hollywood Prop Master and
+Production Equipment Coordinator.
+
+Original production scene:
+{raw_script_payload}
+
+The real studio MCP server returned these verified
+asset records:
+
+{verified_asset_context}
+
+Create the final "Art Department & Asset Requirements"
+report using ONLY the verified MCP information above.
+
+Format as a clear Markdown report.
+
+For each verified asset include:
+- **Asset**
+- **Department**
+- **Availability**
+- **Cost per day**
+- **Permit requirement**
+- **Production note**
+
+If an asset is restricted or unavailable, explicitly call
+that out and explain the production implication.
+
+Do not invent values that are not present in the MCP records.
+"""
+
+                    final_department_response = (
+                        client.models.generate_content(
+                            model=selected_gemini_model,
+                            contents=final_department_prompt,
+                            config=types.GenerateContentConfig(
+                                temperature=0.2,
+                            ),
+                        )
+                    )
+
+                    department_output_text = (
+                        final_department_response.text
+                        or (
+                            "### 📦 Art Department & Asset Requirements\n\n"
+                            + verified_asset_context
+                        )
+                    )
+
+                elif department_response.text:
+
+                    department_output_text = department_response.text
+
+                else:
+
+                    department_output_text = (
+                        "### 📦 Art Department & Asset Requirements\n\n"
+                        "No verified MCP asset requirements were returned."
+                    )
+
+                # ---------------------------------------------
+                # FINANCIAL FALLBACK
+                # ---------------------------------------------
 
                 if not extracted_items_for_calc:
                     extracted_items_for_calc = [
-                        {"item": "flashlight", "cost_per_day": 15},
-                        {"item": "camera", "cost_per_day": 1200},
+                        {
+                            "item": "flashlight",
+                            "cost_per_day": 15,
+                        },
+                        {
+                            "item": "camera",
+                            "cost_per_day": 1200,
+                        },
                     ]
 
                 time.sleep(0.3)
 
-
                 # =================================================
-                # STAGE 3
+                # STAGE 3 — DETERMINISTIC FINANCE
                 # =================================================
 
                 st.write(
@@ -1355,9 +1486,12 @@ query_studio_asset_database tool to verify availability.
                     f"Grand Total: ${budget_data['grand_total']:,}",
                 )
 
-                budget_exceeded = budget_data["grand_total"] > max_allowed_budget
+                budget_exceeded = (
+                    budget_data["grand_total"] > max_allowed_budget
+                )
 
                 if budget_exceeded:
+
                     recovery_actions.append(
                         (
                             "Budget Exceeded Limit "
@@ -1380,9 +1514,8 @@ query_studio_asset_database tool to verify availability.
 
                 time.sleep(0.3)
 
-
                 # =================================================
-                # STAGE 4
+                # STAGE 4 — EXECUTIVE AUDIT
                 # =================================================
 
                 st.write(
@@ -1404,19 +1537,21 @@ Review the following CineSync production packet.
 DIRECTOR ANALYSIS:
 {director_response.text}
 
+VERIFIED MCP ASSET RESULTS:
+{json.dumps(mcp_asset_results, indent=2)}
+
 MCP TRACE DATA:
-{collected_mcp_traces}
+{json.dumps(collected_mcp_traces, indent=2)}
 
 DETERMINISTIC FINANCIAL SUMMARY:
-{budget_data}
+{json.dumps(budget_data, indent=2)}
 
 RECOVERY ACTIONS:
-{recovery_actions}
+{json.dumps(recovery_actions, indent=2)}
 
 Write a formal executive production compliance report.
 
 Include:
-
 1. Executive Summary
 2. Production Findings
 3. Equipment / Asset Validation
@@ -1441,7 +1576,6 @@ Do not change deterministic financial calculations.
                     "Production packet generated and verified.",
                 )
 
-
                 # =================================================
                 # PIPELINE COMPLETE
                 # =================================================
@@ -1452,13 +1586,18 @@ Do not change deterministic financial calculations.
                     expanded=False,
                 )
 
-
                 # =================================================
                 # SESSION STATE
                 # =================================================
 
-                st.session_state["director_output"] = director_response.text
-                st.session_state["dept_output"] = department_response.text
+                st.session_state["director_output"] = (
+                    director_response.text
+                )
+
+                st.session_state["dept_output"] = (
+                    department_output_text
+                )
+
                 st.session_state["finance_output"] = (
                     "### Authoritative Budget Breakdown\n\n"
                     f"- **Shoot Days:** {budget_data['shoot_days']}\n"
@@ -1467,21 +1606,31 @@ Do not change deterministic financial calculations.
                     f"- **Insurance & Permits:** ${budget_data['insurance_and_permits']:,}\n"
                     f"- **Grand Total:** **${budget_data['grand_total']:,}**"
                 )
-                st.session_state["audit_output"] = audit_response.text
-                st.session_state["mcp_traces"] = collected_mcp_traces
+
+                st.session_state["audit_output"] = (
+                    audit_response.text
+                )
+                st.session_state["mcp_traces"] = (
+                    collected_mcp_traces
+                )
                 st.session_state["audit_trail"] = audit_trail
-                st.session_state["recovery_actions"] = recovery_actions
+                st.session_state["recovery_actions"] = (
+                    recovery_actions
+                )
                 st.session_state["requires_approval"] = (
                     budget_data["grand_total"] > 100000
                 )
                 st.session_state["budget_data"] = budget_data
                 st.session_state["production_tier"] = production_tier
                 st.session_state["last_execution_time"] = (
-                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 )
 
-                st.success("Production intelligence packet generated successfully.")
-
+                st.success(
+                    "Production intelligence packet generated successfully."
+                )
 
             except Exception as pipeline_exception:
 
@@ -1490,8 +1639,9 @@ Do not change deterministic financial calculations.
                     state="error",
                 )
 
-                st.error(f"Error diagnostics: {pipeline_exception}")
-
+                st.error(
+                    f"Error diagnostics: {pipeline_exception}"
+                )
 
 # =========================================================
 # 18. EXECUTIVE RESULTS
@@ -1505,7 +1655,6 @@ if st.session_state.get("director_output"):
         '<div class="section-heading">Production Intelligence</div>',
         unsafe_allow_html=True,
     )
-
 
     # =====================================================
     # GOVERNANCE GATE
@@ -1525,7 +1674,6 @@ if st.session_state.get("director_output"):
 
         if approval_checkbox:
             st.success("✅ Executive Authorization Logged.")
-
 
     # =====================================================
     # RESULTS TABS
@@ -1553,15 +1701,18 @@ if st.session_state.get("director_output"):
         ]
     )
 
-
     # =====================================================
     # DIRECTOR
     # =====================================================
 
     with tab_director:
         st.markdown("### 🎬 Cinematic Direction & Breakdown")
-        st.markdown(st.session_state["director_output"])
-
+        st.markdown(
+            st.session_state.get(
+                "director_output",
+                "No director analysis available.",
+            )
+        )
 
     # =====================================================
     # ART DEPARTMENT
@@ -1569,8 +1720,18 @@ if st.session_state.get("director_output"):
 
     with tab_department:
         st.markdown("### 📦 Art Department & Asset Requirements")
-        st.markdown(st.session_state["dept_output"])
 
+        department_output = st.session_state.get(
+            "dept_output",
+            "",
+        )
+
+        if department_output.strip():
+            st.markdown(department_output)
+        else:
+            st.info(
+                "No Art Department requirements were generated."
+            )
 
     # =====================================================
     # FINANCIAL
@@ -1579,197 +1740,328 @@ if st.session_state.get("director_output"):
     with tab_financial:
         st.markdown("### 💰 Deterministic Financial Engine")
 
-        budget = st.session_state.get("budget_data", {})
+        budget = st.session_state.get(
+            "budget_data",
+            {},
+        )
 
         if budget:
             f1, f2, f3, f4 = st.columns(4)
 
             with f1:
-                st.metric("Shoot Days", budget.get("shoot_days", 0))
+                st.metric(
+                    "Shoot Days",
+                    budget.get("shoot_days", 0),
+                )
 
             with f2:
-                st.metric("Crew", f"${budget.get('base_crew_cost', 0):,}")
+                st.metric(
+                    "Crew",
+                    f"${budget.get('base_crew_cost', 0):,}",
+                )
 
             with f3:
-                st.metric("Equipment", f"${budget.get('equipment_total', 0):,}")
+                st.metric(
+                    "Equipment",
+                    f"${budget.get('equipment_total', 0):,}",
+                )
 
             with f4:
-                st.metric("Grand Total", f"${budget.get('grand_total', 0):,}")
+                st.metric(
+                    "Grand Total",
+                    f"${budget.get('grand_total', 0):,}",
+                )
 
             st.markdown("---")
 
-        st.markdown(st.session_state["finance_output"])
-
+        st.markdown(
+            st.session_state.get(
+                "finance_output",
+                "No financial summary available.",
+            )
+        )
 
     # =====================================================
     # EXECUTIVE AUDIT
     # =====================================================
 
     with tab_audit:
-        st.markdown("### 🔍 Certified Executive Production Audit")
-        st.markdown(st.session_state["audit_output"])
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.download_button(
-            label="📥 Export Certified Production Dossier",
-            data=st.session_state["audit_output"],
-            file_name="cinesync_dyno_certified_dossier.md",
-            mime="text/markdown",
-            use_container_width=True,
+        st.markdown(
+            "### 🔍 Certified Executive Production Audit"
         )
 
+        st.markdown(
+            st.session_state.get(
+                "audit_output",
+                "No executive audit available.",
+            )
+        )
+
+        st.download_button(
+            label="📥 Export Certified Production Dossier",
+            data=st.session_state.get(
+                "audit_output",
+                "",
+            ),
+            file_name="cinesync_dyno_certified_dossier.md",
+            mime="text/markdown",
+            width="stretch",
+        )
 
     # =====================================================
     # MCP INSPECTOR
     # =====================================================
 
     with tab_mcp_inspector:
-        st.markdown("### ⚡ True MCP Stdio Subprocess Inspector")
+        st.markdown(
+            "### ⚡ True MCP Stdio Subprocess Inspector"
+        )
+
         st.caption(
             "Live JSON-RPC transport traces between "
             "the Streamlit client and studio_mcp_server.py."
         )
 
-        traces = st.session_state.get("mcp_traces", [])
+        traces = st.session_state.get(
+            "mcp_traces",
+            [],
+        )
 
         if traces:
+
             for idx, trace in enumerate(traces):
+
+                status = trace.get(
+                    "execution_status",
+                    "UNKNOWN",
+                )
+
                 with st.expander(
-                    f"Trace #{idx + 1} — {trace.get('execution_status')}",
+                    f"Trace #{idx + 1} — {status}",
                     expanded=False,
                 ):
-                    st.markdown("**📤 JSON-RPC Request**")
-                    st.json(trace.get("request_payload"))
-                    st.markdown("**📥 JSON-RPC Response**")
-                    st.json(trace.get("response_payload"))
+
+                    st.markdown(
+                        "**📤 JSON-RPC Request**"
+                    )
+                    st.json(
+                        trace.get(
+                            "request_payload",
+                            {},
+                        )
+                    )
+
+                    st.markdown(
+                        "**📥 JSON-RPC Response**"
+                    )
+                    st.json(
+                        trace.get(
+                            "response_payload",
+                            {},
+                        )
+                    )
+
         else:
+
             st.info(
                 "No MCP traces recorded yet. "
                 "Run the production pipeline to capture "
                 "live MCP transport activity."
             )
 
-
     # =====================================================
     # RECOVERY
     # =====================================================
 
     with tab_recovery:
-        st.markdown("### 🔄 Autonomous Failure Detection & Recovery")
+        st.markdown(
+            "### 🔄 Autonomous Failure Detection & Recovery"
+        )
 
-        recovery_actions = st.session_state.get("recovery_actions", [])
+        recovery_actions = st.session_state.get(
+            "recovery_actions",
+            [],
+        )
 
         if recovery_actions:
+
             for action in recovery_actions:
                 st.warning(f"⚠️ {action}")
+
             st.success(
                 "✅ Autonomous re-planning completed. "
                 "The production workflow was recalculated "
                 "around detected constraints."
             )
+
         else:
+
             st.success(
                 "🟢 No resource conflicts or failure states "
                 "were detected during execution."
             )
-
 
     # =====================================================
     # AUDIT TRAIL
     # =====================================================
 
     with tab_audit_trail:
-        st.markdown("### 🛡️ Governance & Telemetry Audit Trail")
+        st.markdown(
+            "### 🛡️ Governance & Telemetry Audit Trail"
+        )
 
-        audit_data = st.session_state.get("audit_trail", [])
+        audit_data = st.session_state.get(
+            "audit_trail",
+            [],
+        )
 
         if audit_data:
-            st.dataframe(audit_data, use_container_width=True, hide_index=True)
+            st.dataframe(
+                audit_data,
+                width="stretch",
+                hide_index=True,
+            )
         else:
             st.info("No audit events recorded.")
-
 
     # =====================================================
     # STUDIO CHAT
     # =====================================================
 
     with tab_chat:
-        st.markdown("### 💬 Interactive Studio Dispatcher")
+
+        st.markdown(
+            "### 💬 Interactive Studio Dispatcher"
+        )
+
         st.caption(
             "Ask the CineSync AI Producer to revise "
             "the production plan."
         )
 
-        if st.session_state["studio_chat_session"] is None:
-            st.session_state["studio_chat_session"] = client.chats.create(
-                model=selected_gemini_model,
-                config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "You are the CineSync Dyno AI Producer. "
-                        "Help production teams revise schedules, "
-                        "budgets, equipment plans, staffing, "
-                        "and production strategy. "
-                        "Never override deterministic financial "
-                        "calculations."
-                    )
-                ),
+        # Rebuild a fresh chat object from persisted
+        # plain-text history so Streamlit reruns never
+        # reuse a stale/closed Chat object.
+        gemini_history = []
+
+        for chat_msg in st.session_state[
+            "chat_message_history"
+        ]:
+
+            role = (
+                "model"
+                if chat_msg["role"] == "assistant"
+                else "user"
             )
 
-        for chat_msg in st.session_state["chat_message_history"]:
-            with st.chat_message(chat_msg["role"]):
-                st.markdown(chat_msg["content"])
+            gemini_history.append(
+                types.Content(
+                    role=role,
+                    parts=[
+                        types.Part.from_text(
+                            text=chat_msg["content"]
+                        )
+                    ],
+                )
+            )
 
-        user_input_prompt = st.chat_input("Enter revision instructions...")
+        studio_chat = client.chats.create(
+            model=selected_gemini_model,
+            history=gemini_history,
+            config=types.GenerateContentConfig(
+                system_instruction=(
+                    "You are the CineSync Dyno AI Producer. "
+                    "Help production teams revise schedules, "
+                    "budgets, equipment plans, staffing, "
+                    "and production strategy. "
+                    "Maintain conversation context. "
+                    "Never override deterministic financial "
+                    "calculations."
+                )
+            ),
+        )
+
+        for chat_msg in st.session_state[
+            "chat_message_history"
+        ]:
+
+            with st.chat_message(
+                chat_msg["role"]
+            ):
+
+                st.markdown(
+                    chat_msg["content"]
+                )
+
+        user_input_prompt = st.chat_input(
+            "Enter revision instructions..."
+        )
 
         if user_input_prompt:
 
-            st.session_state["chat_message_history"].append(
-                {"role": "user", "content": user_input_prompt}
+            st.session_state[
+                "chat_message_history"
+            ].append(
+                {
+                    "role": "user",
+                    "content": user_input_prompt,
+                }
             )
 
             with st.chat_message("user"):
                 st.markdown(user_input_prompt)
 
             with st.chat_message("assistant"):
-                with st.spinner("AI Producer compiling revision..."):
+
+                with st.spinner(
+                    "AI Producer compiling revision..."
+                ):
+
                     try:
-                        chat_resp = st.session_state[
-                            "studio_chat_session"
-                        ].send_message(user_input_prompt)
 
-                        assistant_text = chat_resp.text
-                        st.markdown(assistant_text)
+                        chat_resp = studio_chat.send_message(
+                            user_input_prompt
+                        )
 
-                        st.session_state["chat_message_history"].append(
-                            {"role": "assistant", "content": assistant_text}
+                        assistant_text = (
+                            chat_resp.text
+                            or "The AI Producer returned no response."
+                        )
+
+                        st.markdown(
+                            assistant_text
+                        )
+
+                        st.session_state[
+                            "chat_message_history"
+                        ].append(
+                            {
+                                "role": "assistant",
+                                "content": assistant_text,
+                            }
                         )
 
                     except Exception as chat_error:
-                        st.error(f"Studio Chat Error: {chat_error}")
 
-
-# =========================================================
-# 19. EMPTY STATE
-# =========================================================
+                        st.error(
+                            f"Studio Chat Error: {chat_error}"
+                        )
 
 else:
 
     st.markdown(
-        """
-        <div class="ui-card">
-            <div class="card-title">🎬 Production Control Plane</div>
-            <div class="card-description">
-                Provide a screenplay excerpt or production asset
-                above, then launch the autonomous pipeline.
-                CineSync will analyze the production, query the
-                MCP asset server, calculate deterministic costs,
-                evaluate compliance, and generate an executive
-                production packet.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
+    """
+    <div class="ui-card">
+        <div class="card-title">🎬 Production Control Plane</div>
+        <p class="card-description">
+            Provide a screenplay excerpt or production asset above, then launch the autonomous pipeline.
+            CineSync will analyze the production, query the MCP asset server, calculate deterministic costs,
+            evaluate compliance, and generate an executive production packet.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # =========================================================
 # 20. FOOTER
