@@ -48,5 +48,45 @@
         "status": "Custom Procurement Required from External Vendor",
         "cost_per_day": 250,
         "requires_permit": false
+    },
+    "rain gear": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "water effects equipment": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "lighting grip package": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "safety gear water work": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "portable lighting kit": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "fog machine": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "rain machine": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
+    },
+    "waders": {
+        "status": "Custom Procurement Required from External Vendor",
+        "cost_per_day": 250,
+        "requires_permit": false
     }
 }
