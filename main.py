@@ -604,7 +604,6 @@ except Exception as initialization_error:
 
 DEFAULT_STATE = {
     "show_telemetry": False,
-    "studio_chat_session": None,
     "chat_message_history": [],
     "director_output": None,
     "dept_output": None,
