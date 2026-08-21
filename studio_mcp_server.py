@@ -1,5 +1,5 @@
 """
-CineSync Dyno: Real Model Context Protocol (MCP) Server
+CineSync: Real Model Context Protocol (MCP) Server
 Powered by the official MCP Python SDK (FastMCP over Stdio Transport)
 """
 
@@ -7,7 +7,7 @@ import json
 import os
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("CineSync Dyno Studio MCP Server")
+mcp = FastMCP("CineSync Studio MCP Server")
 INVENTORY_DB = "studio_inventory.json"
 
 def _load_db():
